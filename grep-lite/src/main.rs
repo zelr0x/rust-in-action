@@ -1,4 +1,5 @@
 use std::collections::vec_deque::VecDeque;
+use regex::Regex;
 
 const MATCH_DELIM: char = ':';
 const CTX_DELIM: char = '-';
@@ -9,7 +10,7 @@ struct Ctx {
 }
 
 impl Ctx {
-    fn with_capacity(capacity: usize) -> Ctx {
+    pub fn with_capacity(capacity: usize) -> Ctx {
         Ctx {
             data: VecDeque::with_capacity(capacity),
             capacity
@@ -32,8 +33,40 @@ impl Ctx {
     }
 }
 
-// todo: don't print same line more than once
+struct Matcher<'a> {
+    term: &'a str,
+    re: Option<Regex>,
+}
+
+impl<'a> Matcher<'a> {
+    pub fn new(term: &'a str, re_mode: bool) -> Matcher<'a> {
+        let re = if re_mode {
+            Some(Matcher::parse_re(term))
+        } else { 
+            None
+        };
+
+        Matcher { term, re }
+    }
+
+    pub fn matches(&self, s: &str) -> bool {
+        if let Some(re) = &self.re {
+            re.find(s).is_some()
+        } else {
+            s.contains(&self.term)
+        }
+    }
+
+    fn parse_re(term: &str) -> Regex {
+        Regex::new(term)
+            .expect(&format!(
+                    "Could not create a regular expression from {}",
+                    term))
+    }
+}
+
 fn main() {
+    let re_mode = true;
     let need_line_num = true;
     let ctx_lines = 2;
     let need_ctx = ctx_lines > 0;
@@ -50,11 +83,12 @@ dark square is a picture feverishly tuned--in search of what?
 It is the same with books.
 What do we seek through millions of pages?
 ";
+    let matcher = Matcher::new(search_term, re_mode);
     let mut ctx_head_offset: usize = 0; 
     let mut rem_ctx_lines = 0;
     for (i, line) in quote.lines().enumerate() {
         let is_match;
-        if line.contains(search_term) {
+        if matcher.matches(&line) {
             is_match = true;
             rem_ctx_lines = ctx_lines;
         } else {
