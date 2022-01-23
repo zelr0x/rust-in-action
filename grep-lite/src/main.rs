@@ -10,6 +10,9 @@ const CTX_DELIM: &str = "-";
 const STDIN_INPUT: &str = "-";
 const ARG_PATTERN: &str = "PATTERN";
 const ARG_FILE: &str = "FILE";
+const ARG_LINUM_ON: &str = "LINUM_ON";
+const ARG_CTX: &str = "CTX_ON";
+const ARG_RE_MODE: &str = "RE_MODE";
 
 struct Ctx {
     data: VecDeque<String>,
@@ -78,9 +81,9 @@ impl<'a> Matcher<'a> {
 // cat test.txt | cargo run -- oo -
 fn main() {
     let args = parse_args();
-    let re_mode = true;
-    let need_line_num = true;
-    let ctx_lines = 2;
+    let re_mode: bool = args.value_of_t(ARG_RE_MODE).unwrap_or(true);
+    let linum_on: bool = args.value_of_t(ARG_LINUM_ON).unwrap_or(false);
+    let ctx_lines: usize = args.value_of_t(ARG_CTX).unwrap_or(0);
     let need_ctx = ctx_lines > 0;
     let mut ctx: Ctx = if need_ctx {
         Ctx::with_capacity(ctx_lines) 
@@ -106,11 +109,11 @@ fn main() {
             if need_ctx && is_match {
                 while ctx_head_offset != ctx.len() {
                     print(ctx.get(ctx_head_offset).unwrap(),
-                        i - ctx_head_offset, false, need_line_num);
+                        i - ctx_head_offset, false, linum_on);
                     ctx_head_offset += 1;
                 }
             }
-            print(line, i + 1, is_match, need_line_num);
+            print(line, i + 1, is_match, linum_on);
             if !is_match && need_ctx {
                 rem_ctx_lines -= 1;
             }
@@ -133,6 +136,28 @@ fn parse_args() -> ArgMatches {
             .help("The file to search in")
             .takes_value(true)
             .required(true))
+        .arg(Arg::new(ARG_RE_MODE)
+            .help("PATTERN is a basic regular expression (default)")
+            .takes_value(false)
+            .required(false)
+            .default_value("true")
+            .long("basic-regexp")
+            .short('G'))
+        .arg(Arg::new(ARG_LINUM_ON)
+            .help("print line number with output lines")
+            .takes_value(false)
+            .required(false)
+            .default_value("false")
+            .default_missing_value("true")
+            .long("line-number")
+            .short('n'))
+        .arg(Arg::new(ARG_CTX)
+            .help("print NUM lines of output context")
+            .takes_value(true)
+            .required(false)
+            .default_value("0")
+            .long("context")
+            .short('C'))
         .get_matches() 
 }
 
