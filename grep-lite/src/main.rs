@@ -1,11 +1,15 @@
+use std::fs::File;
+use std::io::{prelude::*, BufReader};
 use std::collections::vec_deque::VecDeque;
 use regex::Regex;
-use clap::{App, Arg};
+use clap::{App, Arg, ArgMatches};
 
 const EMPTY_STR: &str = "";
 const MATCH_DELIM: &str = ":";
 const CTX_DELIM: &str = "-";
+
 const ARG_PATTERN: &str = "PATTERN";
+const ARG_FILE: &str = "FILE";
 
 struct Ctx {
     data: VecDeque<String>,
@@ -48,7 +52,6 @@ impl<'a> Matcher<'a> {
         } else { 
             None
         };
-
         Matcher { term, re }
     }
 
@@ -70,14 +73,7 @@ impl<'a> Matcher<'a> {
 
 // cargo run -- args
 fn main() {
-    let args = App::new("grep-lite")
-        .version("0.1")
-        .about("Search for PATTERN in FILE")
-        .arg(Arg::new(ARG_PATTERN)
-            .help("The pattern to search for")
-            .takes_value(true)
-            .required(true))
-        .get_matches();
+    let args = parse_args();
     let re_mode = true;
     let need_line_num = true;
     let ctx_lines = 2;
@@ -87,31 +83,13 @@ fn main() {
     } else {
         Ctx::with_capacity(0)
     };
-
+    let reader = new_reader(&args);
     let search_term = args.value_of(ARG_PATTERN).unwrap();
-    let quote = "\
-Every face, every shop, bedroom window, public-house, and
-dark square is a picture feverishly tuned--in search of what?
-It is the same with books.
-What do we seek through millions of pages?
-No
-No
-Yes oo
-Yes oo
-Yes oo
-Yes oo
-No
-No but should appear anyway
-No
-No
-No
-Yes oo
-No but ideally next newline should appear.
-";
     let matcher = Matcher::new(search_term, re_mode);
     let mut ctx_head_offset: usize = 0; 
     let mut rem_ctx_lines = 0;
-    for (i, line) in quote.lines().enumerate() {
+    for (i, line_) in reader.lines().enumerate() {
+        let line = &line_.unwrap();
         let is_match;
         if matcher.matches(&line) {
             is_match = true;
@@ -136,6 +114,28 @@ No but ideally next newline should appear.
             ctx_head_offset = ctx_head_offset.saturating_sub(1);
         }
     }
+}
+
+fn parse_args() -> ArgMatches {
+    App::new("grep-lite")
+        .version("0.1")
+        .about("Search for PATTERN in FILE")
+        .arg(Arg::new(ARG_PATTERN)
+            .help("The pattern to search for")
+            .takes_value(true)
+            .required(true))
+        .arg(Arg::new(ARG_FILE)
+            .help("The file to search in")
+            .takes_value(true)
+            .required(true))
+        .get_matches() 
+}
+
+fn new_reader(args: &ArgMatches) -> BufReader<File> {
+    let input = args.value_of(ARG_FILE).unwrap();
+    let f = File::open(input)
+        .expect(&format!("{}: No such file or directory", input));
+    BufReader::new(f)
 }
 
 fn print(line: &str, line_num: usize, is_match: bool, need_line_num: bool) {
