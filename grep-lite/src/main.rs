@@ -1,8 +1,10 @@
 use std::collections::vec_deque::VecDeque;
 use regex::Regex;
+use clap::{App, Arg};
 
 const MATCH_DELIM: char = ':';
 const CTX_DELIM: char = '-';
+const ARG_PATTERN: &str = "PATTERN";
 
 struct Ctx {
     data: VecDeque<String>,
@@ -65,7 +67,16 @@ impl<'a> Matcher<'a> {
     }
 }
 
+// cargo run -- args
 fn main() {
+    let args = App::new("grep-lite")
+        .version("0.1")
+        .about("Search for PATTERN in FILE")
+        .arg(Arg::new(ARG_PATTERN)
+            .help("The pattern to search for")
+            .takes_value(true)
+            .required(true))
+        .get_matches();
     let re_mode = true;
     let need_line_num = true;
     let ctx_lines = 2;
@@ -76,7 +87,7 @@ fn main() {
         Ctx::with_capacity(0)
     };
 
-    let search_term = "oo";
+    let search_term = args.value_of(ARG_PATTERN).unwrap();
     let quote = "\
 Every face, every shop, bedroom window, public-house, and
 dark square is a picture feverishly tuned--in search of what?
