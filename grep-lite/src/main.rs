@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{prelude::*, BufReader};
+use std::io::{prelude::*, BufReader, self};
 use std::collections::vec_deque::VecDeque;
 use regex::Regex;
 use clap::{App, Arg, ArgMatches};
@@ -7,7 +7,7 @@ use clap::{App, Arg, ArgMatches};
 const EMPTY_STR: &str = "";
 const MATCH_DELIM: &str = ":";
 const CTX_DELIM: &str = "-";
-
+const STDIN_INPUT: &str = "-";
 const ARG_PATTERN: &str = "PATTERN";
 const ARG_FILE: &str = "FILE";
 
@@ -72,6 +72,10 @@ impl<'a> Matcher<'a> {
 }
 
 // cargo run -- args
+// e.g.
+// cargo run --oo test.txt
+// or
+// cat test.txt | cargo run -- oo -
 fn main() {
     let args = parse_args();
     let re_mode = true;
@@ -83,8 +87,9 @@ fn main() {
     } else {
         Ctx::with_capacity(0)
     };
-    let reader = new_reader(&args);
     let search_term = args.value_of(ARG_PATTERN).unwrap();
+    let stdin = &io::stdin();
+    let reader = new_reader(&args, stdin);
     let matcher = Matcher::new(search_term, re_mode);
     let mut ctx_head_offset: usize = 0; 
     let mut rem_ctx_lines = 0;
@@ -131,11 +136,15 @@ fn parse_args() -> ArgMatches {
         .get_matches() 
 }
 
-fn new_reader(args: &ArgMatches) -> BufReader<File> {
+fn new_reader<'a>(args: &ArgMatches, stdin: &'a io::Stdin) -> Box<dyn BufRead + 'a> {
     let input = args.value_of(ARG_FILE).unwrap();
-    let f = File::open(input)
-        .expect(&format!("{}: No such file or directory", input));
-    BufReader::new(f)
+    if input == STDIN_INPUT {
+        Box::new(stdin.lock())
+    } else {
+        let f = File::open(input)
+            .expect(&format!("{}: No such file or directory", input));
+        Box::new(BufReader::new(f))
+    }
 }
 
 fn print(line: &str, line_num: usize, is_match: bool, need_line_num: bool) {
