@@ -2,8 +2,9 @@ use std::collections::vec_deque::VecDeque;
 use regex::Regex;
 use clap::{App, Arg};
 
-const MATCH_DELIM: char = ':';
-const CTX_DELIM: char = '-';
+const EMPTY_STR: &str = "";
+const MATCH_DELIM: &str = ":";
+const CTX_DELIM: &str = "-";
 const ARG_PATTERN: &str = "PATTERN";
 
 struct Ctx {
@@ -93,6 +94,19 @@ Every face, every shop, bedroom window, public-house, and
 dark square is a picture feverishly tuned--in search of what?
 It is the same with books.
 What do we seek through millions of pages?
+No
+No
+Yes oo
+Yes oo
+Yes oo
+Yes oo
+No
+No but should appear anyway
+No
+No
+No
+Yes oo
+No but ideally next newline should appear.
 ";
     let matcher = Matcher::new(search_term, re_mode);
     let mut ctx_head_offset: usize = 0; 
@@ -125,15 +139,21 @@ What do we seek through millions of pages?
 }
 
 fn print(line: &str, line_num: usize, is_match: bool, need_line_num: bool) {
-    let num = if need_line_num {
-        line_num.to_string()
+    let num: &str;
+    let owned_num_str;
+    let del: &str;
+    if need_line_num {
+        owned_num_str = line_num.to_string();
+        num = &owned_num_str;
+        del = delim(is_match);
     } else {
-        "".to_string()
-    };
-    println!("{}{} {}", num, delim(is_match), line);
+        num = EMPTY_STR;
+        del = EMPTY_STR;
+    }
+    println!("{}{}{}", num, del, line);
 }
 
-const fn delim(is_match: bool) -> char {
+const fn delim(is_match: bool) -> &'static str {
     if is_match {
         MATCH_DELIM
     } else {
