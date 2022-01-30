@@ -4,7 +4,7 @@
 ///
 /// Operation codes (opcodes):
 /// 0x0000 - stop execution.
-/// 0x8**4 - add, `*` are for the registers.
+/// 0x8XY4 - add the value of the register `Y` to the value of the register `X` and store in `X`.
 ///
 /// `registers` is a set of emulated CPU's registers.
 /// The last register (0xF) is used as a carry flag. When set, it indicates that an operation
