@@ -7,8 +7,8 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use crc::{Crc, CRC_32_CKSUM};
 use serde::{Deserialize, Serialize};
 
-type ByteString = Vec<u8>;
-type ByteStr = [u8];
+pub type ByteString = Vec<u8>;
+pub type ByteStr = [u8];
 
 const CRC32: Crc<u32> = Crc::<u32>::new(&CRC_32_CKSUM);
 
